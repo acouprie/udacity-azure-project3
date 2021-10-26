@@ -1,0 +1,21 @@
+# Azure subscription vars
+subscription_id = ""
+client_id = ""
+client_secret = ""
+tenant_id = ""
+
+# Resource Group/Location
+location = "westeurope"
+resource_group = "udacity_project3_rg"
+application_type = "tfstate12345"
+
+# user
+username="udacity"
+password="password"
+
+prefix="udacity-projet3"
+
+# Network
+virtual_network_name = "udacity_project3_vn"
+address_space = ["10.5.0.0/16"]
+address_prefix_test = "10.5.1.0/24"

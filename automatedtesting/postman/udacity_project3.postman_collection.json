@@ -1,0 +1,85 @@
+{
+	"info": {
+		"_postman_id": "c50110a6-04c5-489d-8203-547789b7752d",
+		"name": "udacity_project3",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Book",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"sample string 8\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ID\": 201,\n  \"Title\": \"sample string 8\",\n  \"Description\": \"sample string 3\",\n  \"PageCount\": 4,\n  \"Excerpt\": \"sample string 5\",\n  \"PublishDate\": \"2021-10-19T14:50:07.9267376+00:00\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://tfstate12345-appservice.azurewebsites.net/api/Books",
+					"protocol": "https",
+					"host": [
+						"tfstate12345-appservice",
+						"azurewebsites",
+						"net"
+					],
+					"path": [
+						"api",
+						"Books"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Books",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Book 1\");",
+							"    pm.expect(pm.response.text()).to.include(\"Book 200\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/Books",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"Books"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

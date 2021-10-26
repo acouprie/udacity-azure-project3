@@ -1,0 +1,193 @@
+name: Azure Pipelines
+
+# This makes sure the pipeline is triggered every time code is pushed in the validation-testing example source, on all branches.
+trigger:
+  branches:
+    include:
+    - '*'
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+variables:
+  # There must be an Azure Service Connection with that name defined in your Azure DevOps settings. See https://docs.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure?view=azure-devops
+  serviceConnection: 'terraform-basic-testing-azure-connection'
+  azureLocation: 'westeurope'
+  # Terraform settings
+  terraformWorkingDirectory: 'terraform/environments/test'
+  terraformVersion: '0.14.3'
+  python.version: '3.7.6'
+
+stages:
+- stage: TerraformContinuousIntegration
+  displayName: Terraform Module - CI
+  jobs:
+  - job: TerraformContinuousIntegrationJob
+    displayName: TerraformContinuousIntegration - CI Job
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0
+      displayName: install Terraform
+      inputs:
+        terraformVersion: $(terraformVersion)
+
+    - task: TerraformTaskV1@0
+      displayName: 'Run terraform init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(terraformWorkingDirectory)
+        backendServiceArm: $(serviceConnection)
+        backendAzureRmResourceGroupName: 'udacity_rg'
+        backendAzureRmStorageAccountName: 'udacity937'
+        backendAzureRmContainerName: 'udacity'
+        backendAzureRmKey: 'terraform.tfstate'
+        commandOptions: -reconfigure
+
+    - task: TerraformTaskV1@0
+      displayName: 'Run terraform plan'
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: $(terraformWorkingDirectory)
+        environmentServiceNameAzureRM: $(serviceConnection)
+        commandOptions: -var location=$(azureLocation)
+
+    - task: TerraformTaskV1@0
+      displayName: 'Run terraform apply'
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        commandOptions: |
+          -auto-approve 
+        workingDirectory: $(terraformWorkingDirectory)
+        environmentServiceNameAzureRM: $(serviceConnection)
+
+- stage: Build
+  jobs:
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+    # Needed for Terraform VM deployment
+    # - task: InstallSSHKey@0
+    #   inputs:
+    #     knownHostsEntry: 'KNOWN_HOSTS_STRING'
+    #     sshPublicKey: 'PUBLIC_KEY'
+    #     sshKeySecureFile: 'id_rsa'
+    - task: ArchiveFiles@2
+      displayName: 'Archive FakeRestAPI'
+      inputs:
+        rootFolderOrFile: 'fakerestapi/'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)-fakerestapi.zip'
+    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId)-fakerestapi.zip
+      displayName: 'Upload Package'
+      artifact: drop-fakerestapi
+
+- stage: Deploy
+  jobs:
+  - deployment: FakeRestAPI
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: 'TEST'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: 'Deploy Azure Web App'
+            inputs:
+              azureSubscription: $(serviceConnection)
+              appName: 'tfstate12345-AppService'
+              appType: webApp
+              package: $(Pipeline.Workspace)/drop-fakerestapi/$(Build.BuildId)-fakerestapi.zip
+
+  - deployment: VirtualMachineDeploy
+    displayName: Deploy the virtual Machine
+    environment:
+      name: 'TEST'
+      resourceType: VirtualMachine
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Bash@3
+            displayName: Configure selenium
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '/home/udacity/'
+              script: |
+                #! /bin/bash
+                sudo apt-get install software-properties-common -y
+                sudo apt-add-repository universe -y
+                sudo apt-get update
+                sudo apt-get upgrade -y
+                sudo apt-get install python3-pip -y
+                sudo apt-get install unzip -y
+                sudo apt-get install -y chromium-browser
+                sudo apt-get install -y chromium-chromedriver
+                pip3 install selenium
+
+- stage: Test
+  jobs:
+  - job: PostmanTests
+    displayName: Postman Tests
+    steps:
+    - task: Bash@3
+      displayName: Install newman
+      inputs:
+        targetType: 'inline'
+        script: |
+          #! /bin/bash
+          npm install -g newman
+
+    - task: Bash@3
+      displayName: Run newman
+      inputs:
+        targetType: 'inline'
+        script: |
+          #! /bin/bash
+          newman run automatedtesting/postman/udacity_project3.postman_collection.json -e automatedtesting/postman/udacity.postman_environment.json --reporters cli,junit --reporter-junit-export Results\junitReport.xml
+
+    - task: PublishTestResults@2
+      inputs:
+        displayName: Publish Test Results
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '$(System.DefaultWorkingDirectory)/junitRegressionReport.xml'
+        mergeTestResults: true
+
+  - job: SeleniumTests
+    displayName: Selenium Tests
+    steps:
+    - task: Bash@3
+      displayName: Run Selenium
+      inputs:
+        targetType: 'inline'
+        script: |
+          #! /bin/bash
+          python3 automatedtesting/selenium/login.py
+
+  - job: JMeterTests
+    displayName: JMeter Tests
+    steps:
+      - task: Bash@3
+        displayName: Install JMeter
+        inputs:
+          targetType: 'inline'
+          script: |
+            sudo apt-get install openjdk-11-jre-headless -y
+            wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.4.1.tgz -O jmeter.tgz
+            tar -xzvf jmeter.tgz
+
+      - task: Bash@3
+        displayName: Run JMeter stress
+        inputs:
+          targetType: 'inline'
+          script: |
+            apache-jmeter-5.4.1/bin/jmeter -n -t automatedtesting/jmeter/Starter.jmx \
+              -l automatedtesting/jmeter/logs/test-output.csv \
+              -e -f -o automatedtesting/jmeter/logs/test-log.html \
+              -j automatedtesting/jmeter/logs/jmeter.log
