@@ -19,50 +19,50 @@ variables:
   python.version: '3.7.6'
 
 stages:
-- stage: TerraformContinuousIntegration
-  displayName: Terraform Module - CI
-  jobs:
-  - job: TerraformContinuousIntegrationJob
-    displayName: TerraformContinuousIntegration - CI Job
-    pool:
-      vmImage: 'ubuntu-18.04'
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0
-      displayName: install Terraform
-      inputs:
-        terraformVersion: $(terraformVersion)
-
-    - task: TerraformTaskV1@0
-      displayName: 'Run terraform init'
-      inputs:
-        provider: 'azurerm'
-        command: 'init'
-        workingDirectory: $(terraformWorkingDirectory)
-        backendServiceArm: $(serviceConnection)
-        backendAzureRmResourceGroupName: 'udacity_rg'
-        backendAzureRmStorageAccountName: 'udacity937'
-        backendAzureRmContainerName: 'udacity'
-        backendAzureRmKey: 'terraform.tfstate'
-        commandOptions: -reconfigure
-
-    - task: TerraformTaskV1@0
-      displayName: 'Run terraform plan'
-      inputs:
-        provider: 'azurerm'
-        command: 'plan'
-        workingDirectory: $(terraformWorkingDirectory)
-        environmentServiceNameAzureRM: $(serviceConnection)
-        commandOptions: -var location=$(azureLocation)
-
-    - task: TerraformTaskV1@0
-      displayName: 'Run terraform apply'
-      inputs:
-        provider: 'azurerm'
-        command: 'apply'
-        commandOptions: |
-          -auto-approve 
-        workingDirectory: $(terraformWorkingDirectory)
-        environmentServiceNameAzureRM: $(serviceConnection)
+#- stage: TerraformContinuousIntegration
+#  displayName: Terraform Module - CI
+#  jobs:
+#  - job: TerraformContinuousIntegrationJob
+#    displayName: TerraformContinuousIntegration - CI Job
+#    pool:
+#      vmImage: 'ubuntu-18.04'
+#    steps:
+#    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0
+#      displayName: install Terraform
+#      inputs:
+#        terraformVersion: $(terraformVersion)
+#
+#    - task: TerraformTaskV1@0
+#      displayName: 'Run terraform init'
+#      inputs:
+#        provider: 'azurerm'
+#        command: 'init'
+#        workingDirectory: $(terraformWorkingDirectory)
+#        backendServiceArm: $(serviceConnection)
+#        backendAzureRmResourceGroupName: 'udacity_rg'
+#        backendAzureRmStorageAccountName: 'udacity937'
+#        backendAzureRmContainerName: 'udacity'
+#        backendAzureRmKey: 'terraform.tfstate'
+#        commandOptions: -reconfigure
+#
+#    - task: TerraformTaskV1@0
+#      displayName: 'Run terraform plan'
+#      inputs:
+#        provider: 'azurerm'
+#        command: 'plan'
+#        workingDirectory: $(terraformWorkingDirectory)
+#        environmentServiceNameAzureRM: $(serviceConnection)
+#        commandOptions: -var location=$(azureLocation)
+#
+#    - task: TerraformTaskV1@0
+#      displayName: 'Run terraform apply'
+#      inputs:
+#        provider: 'azurerm'
+#        command: 'apply'
+#        commandOptions: |
+#          -auto-approve 
+#        workingDirectory: $(terraformWorkingDirectory)
+#        environmentServiceNameAzureRM: $(serviceConnection)
 
 - stage: Build
   jobs:
