@@ -121,15 +121,15 @@ stages:
               workingDirectory: '/home/udacity/'
               script: |
                 #! /bin/bash
-                sudo apt-get install software-properties-common -y
-                sudo apt-add-repository universe -y
                 sudo apt-get update
                 sudo apt-get upgrade -y
-                sudo apt-get install python3-pip -y
-                sudo apt-get install unzip -y
+                sudo apt-get install python3-pip unzip expect -y
                 sudo apt-get install -y chromium-browser
-                sudo apt-get install -y chromium-chromedriver
                 pip3 install selenium
+                sudo rm -rf chromedriver*
+                wget https://chromedriver.storage.googleapis.com/96.0.4664.18/chromedriver_linux64.zip //update the version here
+                unzip chromedriver*.zip
+                sudo mv chromedriver -f /usr/bin
 
 - stage: Test
   jobs:
