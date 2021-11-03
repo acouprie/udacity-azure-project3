@@ -168,6 +168,13 @@ stages:
         targetType: 'inline'
         script: |
           #! /bin/bash
+          python -m pip install --upgrade pip
+          pip install selenium
+          pip install pytest
+          pip install pytest-html
+          pip install chromedriver-py=96.0.4664.18
+          pip install pytest-xdist
+          pip install pytest-nunit
           python3 automatedtesting/selenium/login.py
 
   - job: JMeterTests
